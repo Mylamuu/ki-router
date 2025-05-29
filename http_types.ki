@@ -1,0 +1,18 @@
+pub const MAX_METHOD_LENGTH = 6;
+pub const MAX_PATH_LENGTH = 255;
+
+// MAX_METHOD_LENGTH + 1 (space) + MAX_PATH_LENGTH + 1 (space) + HTTP/1.1 (8) + null terminator (1)
+pub const REQUEST_LINE_BUFFER_SIZE = MAX_METHOD_LENGTH + MAX_PATH_LENGTH + 12;
+
+pub struct HttpRequest {
+    // GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, CONNECT, TRACE
+    // I found these on a google image so who knows if this is all
+    // of them (I can't be bothered to check.)
+    method: &char;
+    path: &char;
+}
+
+pub struct Route {
+    request: HttpRequest;
+    handler: fn(&HttpRequest): &char;
+}

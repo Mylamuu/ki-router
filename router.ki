@@ -1,0 +1,17 @@
+use http_types;
+
+pub const MAX_ROUTES = 128;
+
+fn handle_not_found(req: &http_types.HttpRequest): &char {
+    return "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<html><body><h1>404 Not Found</h1><p>The requested resource was not found on this Ki server.</p></body></html>\r\n";
+}
+
+pub fn handle_request(routes: &&http_types.Route, req: &http_types.HttpRequest): &char {
+    for i: u32 = 0..1 {
+        if compare_string(routes[i].request.method, req.method) && compare_string(routes[i].request.path, req.path) {
+            return routes[i].handler(req);
+        }
+    }
+
+    return handle_not_found(req);
+}

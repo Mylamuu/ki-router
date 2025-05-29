@@ -1,0 +1,32 @@
+use http_types;
+
+pub fn parse_http_request_line(request_line: &char, request: &http_types.HttpRequest): bool {
+    index: u32 = 0;
+
+    // Parse method
+    method_index: u32 = 0;
+    while request_line[index] != ' ' && request_line[index] != '\0' && method_index < http_types.MAX_METHOD_LENGTH - 1 {
+        request.method[method_index] = request_line[index];
+        method_index += 1;
+        index += 1;
+    }
+    request.method[method_index] = '\0';
+
+    // Space after method
+    if request_line[index] != ' ' {
+        return false;
+    }
+    index += 1;
+
+    // Parse path
+    path_index: u32 = 0;
+    while request_line[index] != ' ' && request_line[index] != '\0' && path_index < http_types.MAX_PATH_LENGTH - 1 {
+        request.path[path_index] = request_line[index];
+        path_index += 1;
+        index += 1;
+    }
+    request.path[path_index] = '\0';
+
+    // No one cares about the version
+    return true;
+}

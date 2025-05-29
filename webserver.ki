@@ -1,0 +1,107 @@
+use ki_system;
+use http_types;
+use request_parser;
+use router;
+
+const BUFFER_SIZE = 1024;
+const BAD_REQUEST_RESPONSE = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request\r\n";
+
+fn index_route(request: &http_types.HttpRequest): &char {
+    return "HTTP/1.1 200 Success\r\nContent-Type: text/plain\r\n\r\nHello!\r\n";
+}
+
+pub fn main() {
+    routes: http_types.Route[router.MAX_ROUTES] = [
+        { .request = { .method = "GET", .path = "/" }, .handler = &index_route }
+    ];
+
+    server_fd: i32 = ki_system.socket(ki_system.AF_INET, ki_system.SOCK_STREAM, 0);
+    if server_fd < 0 {
+        println("Failed to create socket.");
+        exit(1);
+    }
+
+    address: ki_system.SocketAddressIn = {
+        .family = ki_system.AF_INET,
+        .port = 36895,
+        .address = ki_system.INADDR_ANY
+    };
+    address_len: u32 = sizeof(address);
+
+    if ki_system.bind(server_fd, cast(&ki_system.SocketAddress)&address, address_len) < 0 {
+        println("Failed to bind socket.");
+        ki_system.close(server_fd);
+        exit(1);
+    }
+
+    if ki_system.listen(server_fd, 10) < 0 {
+        println("Failed to listen on socket.");
+        ki_system.close(server_fd);
+        exit(1);
+    }
+
+    println("Listening on port 8080...");
+
+    request_buffer: char[BUFFER_SIZE];
+    while true {
+        client_fd: i32 = ki_system.accept(server_fd, cast(&ki_system.SocketAddress)&address, &address_len);
+        if client_fd < 0 {
+            println("Failed to accept connection.");
+            continue;
+        }
+
+        println("Accepted connection.");
+
+        for i: u32 = 0..BUFFER_SIZE {
+            request_buffer[i] = '\0';
+        }
+
+        bytes_received: u32 = ki_system.recvfrom(client_fd, request_buffer, BUFFER_SIZE - 1, 0, null, 0);
+        if bytes_received > 0 {
+            request_buffer[bytes_received] = '\0';
+            printf("Received from client: %\n", request_buffer);
+
+            first_line_end: u32 = 0;
+            while first_line_end < bytes_received {
+                if request_buffer[first_line_end] == '\r' || request_buffer[first_line_end] == '\n' {
+                    break;
+                }
+                first_line_end += 1;
+            }
+
+            // MAX_METHOD_LENGTH + 1 (space) + MAX_PATH_LENGTH + 1 (space) + HTTP/1.1 (8) + null terminator (1)
+            request_line_buffer: char[http_types.REQUEST_LINE_BUFFER_SIZE];
+
+            index_copy: u32 = 0;
+            while index_copy < first_line_end && index_copy < http_types.REQUEST_LINE_BUFFER_SIZE - 1 {
+                request_line_buffer[index_copy] = request_buffer[index_copy];
+                index_copy += 1;
+            }
+            request_buffer[index_copy] = '\0';
+
+            current_request: http_types.HttpRequest = { .method = alloc(http_types.MAX_METHOD_LENGTH), .path = alloc(http_types.MAX_PATH_LENGTH) };
+
+            if request_parser.parse_http_request_line(request_line_buffer, &current_request) {
+                printf("Parsed request: Method='%', Path='%'\n", current_request.method, current_request.path);
+                response: &char = router.handle_request(&routes, &current_request);
+                ki_system.sendto(client_fd, response, string_len(response), 0, null, 0);
+            } else {
+                println("Failed to parse request line.");
+                ki_system.sendto(client_fd, BAD_REQUEST_RESPONSE, string_len(BAD_REQUEST_RESPONSE), 0, null, 0);
+            }
+
+            free(current_request.method);
+            free(current_request.path);
+        } else if bytes_received == 0 {
+            println("Client disconnected.");
+        } else {
+            println("Receive failed.");
+        }
+
+        ki_system.close(client_fd);
+        println("Closed client connection.");
+    }
+
+    ki_system.close(server_fd);
+    println("Server shutting down");
+}
