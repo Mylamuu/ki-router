@@ -83,7 +83,7 @@ pub fn main() {
 
             if request_parser.parse_http_request_line(request_line_buffer, &current_request) {
                 printf("Parsed request: Method='%', Path='%'\n", current_request.method, current_request.path);
-                response: &char = router.handle_request(&routes, &current_request);
+                response: &char = router.handle_request(routes, &current_request);
                 ki_system.sendto(client_fd, response, string_len(response), 0, null, 0);
             } else {
                 println("Failed to parse request line.");
