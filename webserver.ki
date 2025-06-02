@@ -6,15 +6,7 @@ use router;
 const BUFFER_SIZE = 1024;
 const BAD_REQUEST_RESPONSE = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request\r\n";
 
-fn index_route(request: &http_types.HttpRequest): &char {
-    return "HTTP/1.1 200 Success\r\nContent-Type: text/plain\r\n\r\nHello!\r\n";
-}
-
-pub fn main() {
-    routes: http_types.Route[router.MAX_ROUTES] = [
-        { .request = { .method = "GET", .path = "/" }, .handler = &index_route }
-    ];
-
+pub fn listen_and_serve(port: u16, routes: &http_types.Route) {
     server_fd: i32 = ki_system.socket(ki_system.AF_INET, ki_system.SOCK_STREAM, 0);
     if server_fd < 0 {
         println("Failed to create socket.");
@@ -23,7 +15,7 @@ pub fn main() {
 
     address: ki_system.SocketAddressIn = {
         .family = ki_system.AF_INET,
-        .port = ki_system.htons(8080),
+        .port = ki_system.htons(port),
         .address = ki_system.INADDR_ANY
     };
     address_len: u32 = sizeof(address);
@@ -40,7 +32,7 @@ pub fn main() {
         exit(1);
     }
 
-    println("Listening on port 8080...");
+    printf("Listening on port %...\n", to_string(port));
 
     request_buffer: char[BUFFER_SIZE];
     while true {

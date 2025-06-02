@@ -1,0 +1,24 @@
+with webserver;
+
+fn index_route(request: &http_types.HttpRequest): &char {
+    return "HTTP/1.1 200 Success\r\nContent-Type: text/plain\r\n\r\nHello!\r\n";
+}
+
+fn other_route(request: &http_types.HttpRequest): &char {
+    return "HTTP/1.1 200 Success\r\nContent-Type: text/plain\r\n\r\nMyla is the best!\r\n";
+}
+
+pub fn main(argc: u32, argv: &string) {
+    if (argc < 2) {
+        println("Not enough arguments!");
+        printf("Usage: % [port]\n", argv[0]);
+        ki_system.exit(1);
+    }
+
+    routes: http_types.Route[router.MAX_ROUTES] = [
+        { .request = { .method = "GET", .path = "/" }, .handler = &index_route },
+        { .request = { .method = "GET", .path = "/other" }, .handler = &other_route }
+    ];
+
+    listen_and_serve(string_to_int(argv[1]), routes);
+}
