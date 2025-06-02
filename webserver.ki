@@ -23,7 +23,7 @@ pub fn main() {
 
     address: ki_system.SocketAddressIn = {
         .family = ki_system.AF_INET,
-        .port = 36895,
+        .port = ki_system.htons(8080),
         .address = ki_system.INADDR_ANY
     };
     address_len: u32 = sizeof(address);
@@ -79,7 +79,7 @@ pub fn main() {
             }
             request_buffer[index_copy] = '\0';
 
-            current_request: http_types.HttpRequest = { .method = alloc(http_types.MAX_METHOD_LENGTH), .path = alloc(http_types.MAX_PATH_LENGTH) };
+            current_request: http_types.HttpRequest;
 
             if request_parser.parse_http_request_line(request_line_buffer, &current_request) {
                 printf("Parsed request: Method='%', Path='%'\n", current_request.method, current_request.path);
@@ -89,9 +89,6 @@ pub fn main() {
                 println("Failed to parse request line.");
                 ki_system.sendto(client_fd, BAD_REQUEST_RESPONSE, string_len(BAD_REQUEST_RESPONSE), 0, null, 0);
             }
-
-            free(current_request.method);
-            free(current_request.path);
         } else if bytes_received == 0 {
             println("Client disconnected.");
         } else {

@@ -8,8 +8,8 @@ pub struct HttpRequest {
     // GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, CONNECT, TRACE
     // I found these on a google image so who knows if this is all
     // of them (I can't be bothered to check.)
-    method: &char;
-    path: &char;
+    method: char[MAX_METHOD_LENGTH];
+    path: char[MAX_PATH_LENGTH];
 }
 
 pub struct Route {
